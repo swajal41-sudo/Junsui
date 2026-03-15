@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Attendance Tracker</title>
+  <meta name="description" content="A buttery smooth, offline-first attendance tracker.">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+  
+  <div id="app">
+    <!-- Setup Screen -->
+    <div id="setup-screen" class="screen active">
+      <div class="glass-panel">
+        <div class="college-header">
+          <img src="gnit_logo.png" alt="GNIT Logo" class="college-logo">
+          <div>
+            <div class="college-name">Guru Nanak Institute of Technology</div>
+            <div class="college-subtitle">Nagpur &mdash; Attendance Management System</div>
+          </div>
+        </div>
+        <h1>New Session</h1>
+        <p class="subtitle">Set up your attendance session</p>
+        
+        <div class="input-group">
+          <label for="branch">Class / Branch</label>
+          <select id="branch" class="select-input">
+            <option value="CSE">Computer Science (CSE)</option>
+            <option value="CSE-DS">Data Science (CSE-DS)</option>
+            <option value="CS">Computer Science (CS)</option>
+            <option value="AIML">AI & ML (AIML)</option>
+            <option value="IT">Information Tech (IT)</option>
+            <option value="MECH">Mechanical (MECH)</option>
+            <option value="CIVIL">Civil (CIVIL)</option>
+            <option value="EE">Electrical (EE)</option>
+            <option value="ETC">Electronics (ETC)</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label for="subject">Subject</label>
+          <select id="subject" class="select-input">
+            <option value="Data Structures">Data Structures</option>
+            <option value="Object Oriented Programming">Object Oriented Programming</option>
+            <option value="Database Management">Database Management Systems</option>
+            <option value="Operating Systems">Operating Systems</option>
+            <option value="Computer Networks">Computer Networks</option>
+            <option value="Software Engineering">Software Engineering</option>
+            <option value="Artificial Intelligence">Artificial Intelligence</option>
+            <option value="Machine Learning">Machine Learning</option>
+            <option value="Python">Python</option>
+            <option value="Java">Java</option>
+            <option value="C">C</option>
+            <option value="C++">C++</option>
+            <option value="Linux">Linux</option>
+            <option value="Indian Knowledge System">Indian Knowledge System</option>
+            <option value="Mathematics-I">Mathematics-I</option>
+            <option value="Mathematics-II">Mathematics-II</option>
+            <option value="Physics">Physics</option>
+            <option value="Chemistry">Chemistry</option>
+            <option value="Engineering Mechanics">Engineering Mechanics</option>
+            <option value="Engineering Graphics">Engineering Graphics</option>
+            <option value="Basic Electrical">Basic Electrical Engineering</option>
+            <option value="Web Technologies">Web Technologies</option>
+            <option value="Digital Logic">Digital Logic Design</option>
+            <option value="Computer Architecture">Computer Architecture</option>
+            <option value="Discrete Mathematics">Discrete Mathematics</option>
+            <option value="Automata Theory">Automata Theory</option>
+            <option value="Other">Not Listed (Other)</option>
+          </select>
+        </div>
+
+        <div class="input-group" id="custom-subject-group" style="display: none;">
+          <label for="custom-subject">Type Subject Name</label>
+          <input type="text" id="custom-subject" placeholder="e.g. Advanced AI">
+        </div>
+        
+        <div class="input-group">
+          <label for="duration">Class Duration</label>
+          <select id="duration" class="select-input">
+            <option value="60" selected>60 minutes (1 class)</option>
+            <option value="120">120 minutes (Lab / 2 classes)</option>
+          </select>
+        </div>
+
+        <div class="time-range-group">
+          <div class="time-box-group">
+            <label>Start Time</label>
+            <div class="time-box">
+              <input type="number" id="start-h" min="0" max="23" placeholder="9" class="time-num">
+              <span class="time-colon">:</span>
+              <input type="number" id="start-m" min="0" max="59" placeholder="45" class="time-num">
+            </div>
+          </div>
+          <span class="time-separator">to</span>
+          <div class="time-box-group">
+            <label>End Time</label>
+            <div class="time-box">
+              <input type="number" id="end-h" min="0" max="23" placeholder="10" class="time-num">
+              <span class="time-colon">:</span>
+              <input type="number" id="end-m" min="0" max="59" placeholder="45" class="time-num">
+            </div>
+          </div>
+        </div>
+        
+        <div class="input-group">
+          <label for="num-students">Number of Students</label>
+          <input type="number" id="num-students" value="60" min="1">
+        </div>
+
+        <button id="start-btn" class="btn primary-btn">
+          <span class="material-symbols-outlined">play_arrow</span>
+          Start Attendance
+        </button>
+      </div>
+    </div>
+
+    <!-- Call Screen -->
+    <div id="call-screen" class="screen">
+      <header>
+        <h2 id="call-title">Attendance Call</h2>
+        <div class="actions">
+          <button id="report-btn" class="icon-btn" title="View Report">
+            <span class="material-symbols-outlined">table_view</span>
+          </button>
+          <button id="export-btn" class="icon-btn" title="Export Excel">
+            <span class="material-symbols-outlined">download</span>
+          </button>
+        </div>
+      </header>
+      
+      <div class="progress-bar-container">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+
+      <main class="card-area">
+        <div id="card-container" class="card-container">
+          <!-- Card gets injected here by JS -->
+        </div>
+      </main>
+
+      <div class="controls">
+        <div class="main-controls">
+          <button id="absent-btn" class="btn absent-btn">
+            <span class="material-symbols-outlined">close</span>
+            Absent
+          </button>
+          <button id="present-btn" class="btn present-btn">
+            <span class="material-symbols-outlined">check</span>
+            Present
+          </button>
+        </div>
+        <div class="sub-controls">
+          <button id="late-btn" class="btn small-btn late-btn">Late</button>
+          <button id="leave-btn" class="btn small-btn leave-btn">Leave</button>
+          <button id="undo-btn" class="btn small-btn undo-btn">
+            <span class="material-symbols-outlined">undo</span> Undo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Complete Screen -->
+    <div id="complete-screen" class="screen">
+      <div class="glass-panel text-center">
+        <span class="material-symbols-outlined success-icon">check_circle</span>
+        <h1>All Done!</h1>
+        <p class="subtitle">All students marked for this session.</p>
+        
+        <button id="complete-export-btn" class="btn primary-btn mt-4">
+          <span class="material-symbols-outlined">download</span>
+          Export Excel
+        </button>
+        
+        <div class="secondary-actions">
+          <button id="complete-pdf-btn" class="btn outline-btn">
+            <span class="material-symbols-outlined">picture_as_pdf</span> Export PDF
+          </button>
+          <button id="complete-report-btn" class="btn outline-btn">
+            <span class="material-symbols-outlined">table_view</span> View Report
+          </button>
+          <button id="complete-undo-btn" class="btn outline-btn">
+            <span class="material-symbols-outlined">undo</span> Undo Last
+          </button>
+          <button id="new-session-btn" class="btn outline-btn">
+            <span class="material-symbols-outlined">refresh</span> New Session
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Screen -->
+  <div id="report-screen" class="screen">
+    <header>
+      <button id="report-back-btn" class="icon-btn">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <h2>Session Report</h2>
+      <div class="actions">
+        <button id="report-pdf-btn" class="icon-btn" title="Export PDF">
+          <span class="material-symbols-outlined">picture_as_pdf</span>
+        </button>
+        <button id="report-export-btn" class="icon-btn" title="Export Excel">
+          <span class="material-symbols-outlined">download</span>
+        </button>
+      </div>
+    </header>
+    <p class="report-meta" id="report-meta"></p>
+    <div class="report-table-wrapper">
+      <table class="report-table" id="report-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Roll No</th>
+            <th>Name</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="report-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

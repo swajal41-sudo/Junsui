@@ -25,7 +25,7 @@ body {
   background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-family);
-  height: 100vh;
+  height: 100dvh;
   width: 100vw;
   overflow: hidden;
   display: flex;
@@ -36,12 +36,13 @@ body {
 #app {
   width: 100%;
   max-width: 480px;
-  height: 100%;
+  height: 100dvh;
   position: relative;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   background-color: transparent;
 }
+
 
 .screen {
   position: absolute;
@@ -576,3 +577,86 @@ header {
 .status-L  { background: rgba(245,158,11,0.2); color: #f59e0b; }
 .status-Lv { background: rgba(59,130,246,0.2); color: #3b82f6; }
 .status-NA { background: rgba(100,116,139,0.2); color: #94a3b8; }
+
+/* Responsive Tweaks for Short Screens */
+@media (max-height: 700px) {
+  .screen {
+    padding: 10px 14px;
+  }
+  
+  header {
+    margin-bottom: 8px;
+  }
+  
+  .college-header {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+  
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.2rem; }
+  
+  .card-name {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+  }
+  
+  .card-roll {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+  
+  .card-status {
+    font-size: 0.9rem;
+  }
+  
+  .main-controls .btn {
+    padding: 10px 6px;
+  }
+  
+  .main-controls .btn span {
+    font-size: 1.2rem;
+    margin-bottom: 2px;
+  }
+  
+  .sub-controls .btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .controls {
+    padding-bottom: 4px;
+  }
+  
+  .glass-panel {
+    padding: 16px 14px;
+  }
+  
+  .success-icon {
+    font-size: 32px;
+    margin-bottom: 4px;
+  }
+  
+  .secondary-actions {
+    margin-top: 12px;
+    gap: 6px;
+  }
+  
+  .mt-4 {
+    margin-top: 12px;
+  }
+
+  .student-card {
+    padding: 12px 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .card-name {
+    font-size: 1.8rem;
+  }
+  
+  .main-controls {
+    gap: 8px;
+  }
+}

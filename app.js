@@ -18,6 +18,7 @@ let currentIndex = 0;
 let sessionBranch = "";
 let sessionSubject = "";
 let sessionTimeSlot = "";
+let sessionDate = "";
 
 // DOM Elements
 const screens = {
@@ -86,9 +87,11 @@ async function initializeStudents(count) {
     // Check for custom name (priority: full roll -> short roll)
     let displayName = nameMap[fullRoll] || nameMap[shortRoll];
     
-    // Auto-fill CSE names if not already set
-    if (!displayName && currentBranch === 'CSE' && CSE_STUDENTS[i-1]) {
-      displayName = CSE_STUDENTS[i-1];
+    // Auto-fill names if not already set
+    if (!displayName) {
+      if (currentBranch === 'CSE' && CSE_STUDENTS[i-1]) displayName = CSE_STUDENTS[i-1];
+      else if (currentBranch === 'ETC' && ETC_STUDENTS[i-1]) displayName = ETC_STUDENTS[i-1];
+      else if (currentBranch === 'CSE-CS' && CSECS_STUDENTS[i-1]) displayName = CSECS_STUDENTS[i-1];
     }
     
     displayName = displayName || `Student ${i}`;
@@ -115,12 +118,13 @@ const branchStudentCount = {
   'CSE':    44,
   'CSE-DS': 60,
   'CS':     60,
+  'CSE-CS': 48,
   'AIML':   60,
   'IT':     60,
   'MECH':   60,
   'CIVIL':  60,
   'EE':     60,
-  'ETC':    60,
+  'ETC':    51,
   'Other':  60,
 };
 
@@ -136,6 +140,37 @@ const CSE_STUDENTS = [
   "Soham Khote", "Soumya Niraj Sable", "Swajal Sandesh Indorkar", "Swarnim Maruti Wadgule",
   "Tanmay Arvind Rithe", "Tanvi Devanand Bhowate", "Triveni Manohar Tarale", "Vedangi Pravin Diware",
   "Vedant Hiralal Patil", "Vidanshu Arun Choudhari", "Yash Suresh Ingale", "Yash Tulshiram Bobade"
+];
+
+const ETC_STUDENTS = [
+  "Aditya Prabhakar Dahare", "Akansha Rajendra Bhaisare", "Anushka Narendra Godbole", "Anushka Naresh Khadse",
+  "Aryan Sunil Patil", "Dhruv Vinod Bhagwat", "Dipti Kishor Nimje", "Divyanshu Raghunath Randkhe",
+  "Janvi Santoshsing Chavan", "Jay Anil Bhalerao", "Jitesh Kapil Sangole", "Kartik Anil Prajapati",
+  "Khushi Purushottam Ghodakade", "Khushi Santosh Supare", "Krushna Bhaskar Gawande", "Kuljot Gurwant Atwal",
+  "Kunal Kailas Nandane", "Lavannya Govind Kaulakar", "Madhuri Gajananrao Hargode", "Mayank Ravindra Chalkhor",
+  "Minal Baliram Kirnapure", "Mohit Vilas Meshram", "Namrata Ashokrao Pande", "Nandini Janrao Shindemeshram",
+  "Nirbhay Sunil Wankhede", "Nivedita Pankaj Kindarle", "Piyush Awadhut Joge", "Pooja Rajesh Choudhary",
+  "Pranay Naresh Bawane", "Prathamesh Yogeshrao Chopkar", "Pratik Prakash Sarode", "Prerna Prakash Kadak",
+  "Radha Raorao Padole", "Rohit Rameshwar Ingle", "Rudranee Namdeo Hete", "Ruth Taresh Tayde",
+  "Rutushri Harishrao Shembekar", "Sahil Naresh Bhoyar", "Sahil Pandit Meshram", "Samiksha Naresh Kale",
+  "Samiksha Satish Meshram", "Sanket Sanjay Chaudhari", "Sayali Teiram Gondule", "Shantanu Vijay Raskar",
+  "Sujal Atul Parunde", "Swanandi Nitin Nerkar", "Tejal Pradip Raut", "Tejas Dilip Kailuke",
+  "Vaishnavi Ramchandra Ambilkar", "Vanshika Vilas Waghmare", "Vedika Anil Nakshane"
+];
+
+const CSECS_STUDENTS = [
+  "Abhijit Sudhakar Sonone", "Aishika Pravin Dhongade", "Akhilesh Suresh Gawande", "Aman Sabir Shaha",
+  "Arshu Jitendra Meshram", "Ashi Kumari", "Ayush Sandip Kshirsagar", "Ayushi Rajesh Ukey",
+  "Bhavesh Prakash Khare", "Bhumika Nayan Thote", "Gaurav Sachin Meshram", "Gitesh Mahendra Bagde",
+  "Harshal Ajay Sontakke", "Isha Awadhut Raut", "Ishika Sameer Wankar", "Kasturi Sukesh Damdu",
+  "Krish Rahul Landge", "Kunjan Anil Matte", "Lukesh Rajesh Nevait", "Mokshita Santosh Kawale",
+  "Nidhi Deepak Zoting", "Parivesh Ravi Mahajan", "Parth Hemantkumar Chapke", "Prachi Kamlesh Rahangdale",
+  "Prasad Motiram Vatade", "Prathmesh Vijay Burse", "Pratik Gajanan Lokhande", "Pratik Keshav Nimje",
+  "Rajesh Pandurang Rathod", "Rashi Bhupesh Wakale", "Riya Singh", "Rushikesh Gangadhar Kunte",
+  "Saksham Bharat Gajbhiye", "Samiksha Dhiraj Nitnaware", "Shantanu Samadhan Shirale", "Sharbani Rakesh Lonare",
+  "Shreyas Sunil Puri", "Siddhi Ravindra Meshram", "Srushti Pradip Dange", "Subodh Davanand Bhagat",
+  "Suraj Rajesh Misewar", "Swayam Vinod Ghadse", "Tanushree Nishant Bhasarkar", "Tanushree Sachin Borkar",
+  "Tejaswini Sunil Dhote", "Vansh Prabhakar Khapekar", "Yamini Ravishankar Rane", "Yash Purushottam Nagpure"
 ];
 
 // Set initial value on page load
@@ -197,6 +232,7 @@ setupBtn.addEventListener('click', async () => {
   const em = parseInt(document.getElementById('end-m').value) || 0;
   const fmt = (h, m) => `${h % 12 || 12}:${String(m).padStart(2,'0')} ${h < 12 ? 'AM' : 'PM'}`;
   sessionTimeSlot = `${fmt(sh, sm)} - ${fmt(eh, em)}`;
+  sessionDate = new Date().toISOString().split('T')[0];
 
   const numStudents = Math.max(1, parseInt(document.getElementById('num-students').value) || 60);
 
@@ -248,7 +284,7 @@ async function recordAttendance(status, isPresent) {
   if (currentIndex >= studentsList.length) return;
 
   const student = studentsList[currentIndex];
-  const dateStr = new Date().toISOString().split('T')[0];
+  const dateStr = sessionDate;
   const timestampObj = new Date().toISOString();
 
   // Push to local DB
@@ -413,13 +449,14 @@ const statusShort = { 'Present': 'P', 'Absent': 'A', 'Late': 'L', 'Leave': 'Lv',
 const statusClass = { 'Present': 'status-P', 'Absent': 'status-A', 'Late': 'status-L', 'Leave': 'status-Lv', null: 'status-NA' };
 
 async function renderReport() {
-  const dateStr = new Date().toISOString().split('T')[0];
+  const dateStr = sessionDate;
   const students = await db.students.toArray();
   let todayRecords = await db.attendance.toArray();
   todayRecords = todayRecords.filter(r =>
     r.date === dateStr &&
     r.subject === sessionSubject &&
-    r.branch === sessionBranch
+    r.branch === sessionBranch &&
+    r.timeSlot === sessionTimeSlot
   );
 
   const meta = document.getElementById('report-meta');
@@ -457,7 +494,7 @@ async function renderReport() {
 
       const nextIdx = currentStatus ? (statusCycle.indexOf(currentStatus) + 1) % statusCycle.length : 0;
       const newStatus = statusCycle[nextIdx];
-      const dateStr = new Date().toISOString().split('T')[0];
+      const dateStr = sessionDate;
       const timestamp = new Date().toISOString();
 
       if (recId) {
@@ -519,10 +556,10 @@ async function exportPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-  const dateStr = new Date().toISOString().split('T')[0];
+  const dateStr = sessionDate;
   const students = await db.students.toArray();
   let allRecords = await db.attendance.toArray();
-  allRecords = allRecords.filter(r => r.subject === sessionSubject && r.branch === sessionBranch);
+  allRecords = allRecords.filter(r => r.date === dateStr && r.subject === sessionSubject && r.branch === sessionBranch && r.timeSlot === sessionTimeSlot);
 
   // Load GNIT logo as base64
   const logoUrl = 'gnit_logo.png';
@@ -571,19 +608,36 @@ async function exportPDF() {
   const tableBody = students.map((s, i) => {
     const rec = allRecords.find(r => r.studentId === s.id);
     const status = rec ? rec.status : 'N/A';
-    // Format roll like 25CSE01
+    
+    // Format roll numbers based on branch
     let rollDisplay = s.rollNo;
     if (sessionBranch === 'CSE') {
       const num = s.rollNo.split('-').pop();
       rollDisplay = `25CSE${num.slice(-2)}`;
+    } else if (sessionBranch === 'ETC') {
+      const num = s.rollNo.split('-').pop();
+      rollDisplay = `25ETC${num.slice(-2)}`;
+    } else if (sessionBranch === 'CSE-CS') {
+      const num = s.rollNo.split('-').pop();
+      rollDisplay = `25CSECS${num.slice(-2)}`;
     }
+
+    const shortStatus = {
+      'Present': 'P',
+      'Absent': 'A',
+      'Late': 'L',
+      'Leave': 'Lv',
+      'N/A': '-'
+    }[status] || '-';
+
+    const mark = status === 'Present' ? '✓' : (status === 'N/A' ? '-' : '✗');
 
     return [
       i + 1,
       rollDisplay,
       s.name,
-      status === 'Present' ? 'P' : (status === 'Absent' ? 'A' : (status === 'Late' ? 'L' : 'Lv')),
-      status === 'Present' ? '✓' : '✗'
+      shortStatus,
+      mark
     ];
   });
 

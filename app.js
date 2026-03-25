@@ -131,7 +131,7 @@ const branchStudentCount = {
 const CSE_STUDENTS = [
   "Aaditya Anil Wankhede", "Aditya Pankaj Fule", "Aditya Rajesh Khalode", "Aditya Sunil Dafade",
   "Anjali Sanjay Chutke", "Anjali Vikram Tapre", "Anushka Ravindra Askar", "Ashish Subhashrao Date",
-  "Atharva Rakesh Nandgaonkar", "Ayush Jagdish Kekan", "Bhushan Kedar Shende", "Buddhabhushan Vijay Bhalerao",
+  "Atharvi Rakesh Nandgaonkar", "Ayush Jagdish Kekan", "Bhushan Kedar Shende", "Buddhabhushan Vijay Bhalerao",
   "Chaitali Sanjay Adbale", "Darshan Rajendra Rakshak", "Dipali Shivraj Awadhut", "Harshada Sevak Kolhe",
   "Komal Sanjay Pund", "Krushika Raju Masram", "Kuber Nilkanth Peddiwar", "Lucky Ashok Patil",
   "Neha Sitaram Bedre", "Prem Siddharth Tayade", "Prerna Shankar Sasane", "Priyanshu Dhanraj Yerpude",

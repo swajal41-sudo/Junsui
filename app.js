@@ -1,3 +1,45 @@
+// ── GOOGLE SHEETS SYNC ───────────────────────────────────────
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnGFIjSuoVreyJUfj93XOUSqwOhkD1p9XdqineT79ix336ruWIJow53XatSnjn2e9rNA/exec";
+
+async function sendToSheets() {
+  let allRecords = await db.attendance.toArray();
+  allRecords = allRecords.filter(r =>
+    r.subject === sessionSubject && r.branch === sessionBranch
+  );
+
+  const rows = [];
+  for (const r of allRecords) {
+    const student = studentsList.find(s => s.id === r.studentId);
+    if (!student) continue;
+    rows.push({
+      rollNo: student.rollNo,
+      name: student.name,
+      branch: sessionBranch,
+      date: r.date,
+      subject: r.subject,
+      timeSlot: r.timeSlot,
+      status: r.status
+    });
+  }
+
+  if (rows.length === 0) {
+    showToast("No data to send!");
+    return;
+  }
+
+  try {
+    showToast("Sending to Google Sheets...");
+    await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ branch: sessionBranch, rows }),
+    });
+    showToast("✅ Sent to Google Sheets!");
+  } catch (err) {
+    showToast("❌ Failed to send!");
+    console.error(err);
+  }
+}
+
 // Initialize Dexie JS Database
 const db = new Dexie("AttendanceDB");
 db.version(1).stores({
@@ -69,8 +111,7 @@ function switchScreen(screenName) {
 async function initializeStudents(count) {
   await db.students.clear();
   const currentBranch = branchSelect.value;
-  
-  // Load existing names for this branch from registry
+
   const registryEntries = await db.student_registry.where('branch').equals(currentBranch).toArray();
   const nameMap = {};
   registryEntries.forEach(r => {
@@ -79,23 +120,21 @@ async function initializeStudents(count) {
 
   const newStudents = [];
   const prefix = currentBranch === 'Other' ? '' : currentBranch;
-  
+
   for (let i = 1; i <= count; i++) {
     const shortRoll = String(i);
     const fullRoll = prefix ? `${prefix}-${String(i).padStart(3, '0')}` : String(i);
-    
-    // Check for custom name (priority: full roll -> short roll)
+
     let displayName = nameMap[fullRoll] || nameMap[shortRoll];
-    
-    // Auto-fill names if not already set
+
     if (!displayName) {
       if (currentBranch === 'CSE' && CSE_STUDENTS[i-1]) displayName = CSE_STUDENTS[i-1];
       else if (currentBranch === 'ETC' && ETC_STUDENTS[i-1]) displayName = ETC_STUDENTS[i-1];
       else if (currentBranch === 'CSE-CS' && CSECS_STUDENTS[i-1]) displayName = CSECS_STUDENTS[i-1];
     }
-    
+
     displayName = displayName || `Student ${i}`;
-    
+
     newStudents.push({
       rollNo: fullRoll,
       name: displayName,
@@ -176,7 +215,6 @@ const CSECS_STUDENTS = [
 // Set initial value on page load
 numStudentsInput.value = branchStudentCount[branchSelect.value] || 60;
 
-// Default branching behavior
 branchSelect.addEventListener('change', () => {
   const count = branchStudentCount[branchSelect.value] || 60;
   numStudentsInput.value = count;
@@ -193,7 +231,6 @@ if (subjectSelect) {
   });
 }
 
-// Auto-fill current time snapped to nearest 45-min slot boundary
 function recalcEndTime() {
   const duration = parseInt(document.getElementById('duration').value) || 60;
   const sh = parseInt(document.getElementById('start-h').value);
@@ -213,12 +250,10 @@ function recalcEndTime() {
   recalcEndTime();
 })();
 
-// When user changes duration or start time, auto-update end time
 document.getElementById('duration').addEventListener('change', recalcEndTime);
 document.getElementById('start-h').addEventListener('input', recalcEndTime);
 document.getElementById('start-m').addEventListener('input', recalcEndTime);
 
-// Setup screen flow
 setupBtn.addEventListener('click', async () => {
   sessionBranch = branchSelect.value || 'Unknown';
   sessionSubject = subjectSelect.value;
@@ -241,7 +276,7 @@ setupBtn.addEventListener('click', async () => {
 
   await initializeStudents(numStudents);
   currentIndex = 0;
-  
+
   setupBtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span> Start Attendance';
   setupBtn.disabled = false;
 
@@ -249,9 +284,7 @@ setupBtn.addEventListener('click', async () => {
   switchScreen('call');
 });
 
-// Render Student Card
 function renderCard() {
-  // Update progress
   progressBar.style.width = `${(currentIndex / studentsList.length) * 100}%`;
 
   if (currentIndex >= studentsList.length) {
@@ -277,7 +310,6 @@ function renderCard() {
   cardContainer.innerHTML = cardHtml;
 }
 
-// Record Attendance Logic
 async function recordAttendance(status, isPresent) {
   triggerHaptic();
 
@@ -287,7 +319,6 @@ async function recordAttendance(status, isPresent) {
   const dateStr = sessionDate;
   const timestampObj = new Date().toISOString();
 
-  // Push to local DB
   await db.attendance.add({
     studentId: student.id,
     date: dateStr,
@@ -298,7 +329,6 @@ async function recordAttendance(status, isPresent) {
     branch: sessionBranch
   });
 
-  // Update offline queue
   await db.queue.add({
     studentId: student.id,
     date: dateStr,
@@ -309,15 +339,12 @@ async function recordAttendance(status, isPresent) {
     branch: sessionBranch
   });
 
-  // Update student table visually and DB
   const updateObj = { totalClasses: student.totalClasses + 1 };
   if (isPresent) updateObj.attendedClasses = student.attendedClasses + 1;
   await db.students.update(student.id, updateObj);
-  
-  // Update memory
+
   studentsList[currentIndex] = await db.students.get(student.id);
 
-  // Transition Animation
   const currentCard = document.getElementById('current-card');
   if (currentCard) {
     currentCard.classList.remove('slide-in');
@@ -330,13 +357,11 @@ async function recordAttendance(status, isPresent) {
   }, 200);
 }
 
-// Bind attendance buttons
 btnPresent.addEventListener('click', () => recordAttendance('Present', true));
 btnAbsent.addEventListener('click', () => recordAttendance('Absent', false));
 btnLate.addEventListener('click', () => recordAttendance('Late', false));
 btnLeave.addEventListener('click', () => recordAttendance('Leave', false));
 
-// Undo Functionality
 async function undoLast() {
   const lastRecord = await db.queue.orderBy('id').last();
   if (!lastRecord) {
@@ -346,28 +371,25 @@ async function undoLast() {
 
   triggerHaptic();
 
-  // Delete from queue and log
   await db.queue.delete(lastRecord.id);
   const logMatches = await db.attendance.where({studentId: lastRecord.studentId}).toArray();
   if(logMatches.length > 0) {
-    const lastLog = logMatches[logMatches.length - 1]; // naive fetch
+    const lastLog = logMatches[logMatches.length - 1];
     await db.attendance.delete(lastLog.id);
   }
 
-  // Revert Student DB values
   const student = await db.students.get(lastRecord.studentId);
   const isPresent = lastRecord.status === 'Present';
   const updateObj = { totalClasses: Math.max(0, student.totalClasses - 1) };
   if (isPresent) updateObj.attendedClasses = Math.max(0, student.attendedClasses - 1);
   await db.students.update(student.id, updateObj);
 
-  // Reload students buffer
   studentsList = await db.students.toArray();
 
   if (currentIndex > 0) {
     currentIndex--;
   }
-  
+
   switchScreen('call');
   renderCard();
   showToast(`Undid action for Student ${student.rollNo}`);
@@ -375,26 +397,25 @@ async function undoLast() {
 
 btnUndoList.forEach(btn => btn.addEventListener('click', undoLast));
 
-// Export Data
 async function exportExcel() {
   const students = studentsList;
   let allRecords = await db.attendance.toArray();
-  
+
   if (sessionSubject && sessionSubject !== 'Unknown') {
     allRecords = allRecords.filter(r => r.subject === sessionSubject);
   }
   if (sessionBranch && sessionBranch !== 'Unknown') {
     allRecords = allRecords.filter(r => r.branch === sessionBranch);
   }
-  
+
   const data = [];
-  
+
   for (const s of students) {
     const records = allRecords.filter(r => r.studentId === s.id);
     const totalClass = records.length;
     const attendedClass = records.filter(r => r.status === 'Present').length;
     const percentage = totalClass > 0 ? ((attendedClass / totalClass) * 100).toFixed(2) + '%' : '0.00%';
-    
+
     const row = {
       "Roll No": s.rollNo,
       "Name": s.name,
@@ -403,34 +424,29 @@ async function exportExcel() {
       "Attended": attendedClass,
       "Percentage": percentage
     };
-    
-    const statusMap = {
-      "Present": "P",
-      "Absent": "A",
-      "Late": "L",
-      "Leave": "Lv"
-    };
-    
+
+    const statusMap = { "Present": "P", "Absent": "A", "Late": "L", "Leave": "Lv" };
+
     for (const r of records) {
       row[r.date] = statusMap[r.status] || "-";
     }
-    
+
     data.push(row);
   }
-  
+
   if (data.length === 0) {
     showToast("No data to export!");
     return;
   }
-  
+
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-  
+
   const dateStr = new Date().toISOString().split('T')[0];
   const safeSubject = (sessionSubject || "Class").replace(/[^a-z0-9]/gi, '_');
   XLSX.writeFile(wb, `RTMNU_Attendance_${safeSubject}_${dateStr}.xlsx`);
-  
+
   showToast("Excel downloaded successfully!");
 }
 
@@ -438,7 +454,6 @@ btnExportList.forEach(btn => btn.addEventListener('click', exportExcel));
 document.getElementById('report-export-btn').addEventListener('click', exportExcel);
 document.getElementById('report-pdf-btn').addEventListener('click', exportPDF);
 
-// Reset Session
 btnNewSession.addEventListener('click', () => {
   switchScreen('setup');
 });
@@ -485,7 +500,6 @@ async function renderReport() {
     tbody.appendChild(tr);
   });
 
-  // Inline edit: tap badge to cycle status
   tbody.querySelectorAll('.status-badge').forEach(badge => {
     badge.addEventListener('click', async () => {
       const studentId = parseInt(badge.dataset.studentId);
@@ -498,20 +512,17 @@ async function renderReport() {
       const timestamp = new Date().toISOString();
 
       if (recId) {
-        // Update existing record
         await db.attendance.update(recId, { status: newStatus });
-        // Revert old student stat
         const student = await db.students.get(studentId);
         const wasPresent = currentStatus === 'Present';
         const isNowPresent = newStatus === 'Present';
-        let totalDelta = 0, attendDelta = 0;
+        let attendDelta = 0;
         if (wasPresent && !isNowPresent) attendDelta = -1;
         if (!wasPresent && isNowPresent) attendDelta = 1;
         await db.students.update(studentId, {
           attendedClasses: Math.max(0, student.attendedClasses + attendDelta)
         });
       } else {
-        // First time marking this student
         const newId = await db.attendance.add({
           studentId, date: dateStr, status: newStatus,
           timestamp, subject: sessionSubject, timeSlot: sessionTimeSlot, branch: sessionBranch
@@ -524,7 +535,6 @@ async function renderReport() {
         });
       }
 
-      // Update badge UI
       badge.dataset.status = newStatus;
       badge.textContent = statusShort[newStatus];
       badge.className = `status-badge ${statusClass[newStatus]}`;
@@ -534,7 +544,6 @@ async function renderReport() {
   });
 }
 
-// Wire up report button visibility
 function openReport() {
   renderReport();
   switchScreen('report');
@@ -543,7 +552,6 @@ function openReport() {
 document.getElementById('report-btn').addEventListener('click', openReport);
 document.getElementById('complete-report-btn').addEventListener('click', openReport);
 document.getElementById('report-back-btn').addEventListener('click', () => {
-  // Go back to wherever we came from
   if (currentIndex >= studentsList.length) {
     switchScreen('complete');
   } else {
@@ -561,7 +569,6 @@ async function exportPDF() {
   let allRecords = await db.attendance.toArray();
   allRecords = allRecords.filter(r => r.date === dateStr && r.subject === sessionSubject && r.branch === sessionBranch && r.timeSlot === sessionTimeSlot);
 
-  // Load GNIT logo as base64
   const logoUrl = 'gnit_logo.png';
   let logoBase64 = null;
   try {
@@ -574,16 +581,15 @@ async function exportPDF() {
     });
   } catch(e) {}
 
-  // --- Header ---
   const pageW = doc.internal.pageSize.getWidth();
   if (logoBase64) doc.addImage(logoBase64, 'PNG', 10, 8, 22, 22);
 
   doc.setFontSize(14).setFont('helvetica', 'bold');
   doc.text('GURU NANAK INSTITUTE OF TECHNOLOGY', pageW / 2, 14, { align: 'center' });
-  
+
   doc.setFontSize(10).setFont('helvetica', 'bold');
   doc.text('NAAC ACCREDITED', pageW / 2, 19, { align: 'center' });
-  
+
   doc.setFontSize(9).setFont('helvetica', 'normal');
   doc.text('Dahegaon, Kalmeshwar Road, Nagpur 441501', pageW / 2, 24, { align: 'center' });
   doc.text('Academic Session 2025-26 (EVEN)', pageW / 2, 28, { align: 'center' });
@@ -591,7 +597,6 @@ async function exportPDF() {
   doc.setLineWidth(0.5);
   doc.line(10, 32, pageW - 10, 32);
 
-  // --- Session Info ---
   doc.setFontSize(10).setFont('helvetica', 'bold');
   const sessionTitle = `ROLL LIST - IInd SEM ${sessionBranch === 'CSE' ? 'COMPUTER SCIENCE ENGINEERING' : sessionBranch}`;
   doc.text(sessionTitle, pageW / 2, 40, { align: 'center' });
@@ -600,16 +605,14 @@ async function exportPDF() {
   doc.text(`Subject: ${sessionSubject}`, 12, 48);
   doc.text(`Date: ${dateStr}`, 148, 48);
   doc.text(`Time Slot: ${sessionTimeSlot}`, 12, 53);
-  
+
   const presentCount = allRecords.filter(r => r.status === 'Present').length;
   doc.text(`Present: ${presentCount} / ${students.length}`, 148, 53);
 
-  // --- Table ---
   const tableBody = students.map((s, i) => {
     const rec = allRecords.find(r => r.studentId === s.id);
     const status = rec ? rec.status : 'N/A';
-    
-    // Format roll numbers based on branch
+
     let rollDisplay = s.rollNo;
     if (sessionBranch === 'CSE') {
       const num = s.rollNo.split('-').pop();
@@ -622,23 +625,10 @@ async function exportPDF() {
       rollDisplay = `25CSECS${num.slice(-2)}`;
     }
 
-    const shortStatus = {
-      'Present': 'P',
-      'Absent': 'A',
-      'Late': 'L',
-      'Leave': 'Lv',
-      'N/A': '-'
-    }[status] || '-';
-
+    const shortStatus = { 'Present': 'P', 'Absent': 'A', 'Late': 'L', 'Leave': 'Lv', 'N/A': '-' }[status] || '-';
     const mark = status === 'Present' ? '✓' : (status === 'N/A' ? '-' : '✗');
 
-    return [
-      i + 1,
-      rollDisplay,
-      s.name,
-      shortStatus,
-      mark
-    ];
+    return [i + 1, rollDisplay, s.name, shortStatus, mark];
   });
 
   doc.autoTable({
@@ -658,17 +648,14 @@ async function exportPDF() {
     margin: { left: 10, right: 10 },
   });
 
-  // --- Footer ---
   const finalY = doc.lastAutoTable.finalY + 20;
   doc.setFontSize(10).setFont('helvetica', 'bold');
   doc.text('Class Teacher', 30, finalY);
   doc.text('HoD', 160, finalY);
 
-  // Download
   const safeSubject = (sessionSubject || 'Class').replace(/[^a-z0-9]/gi, '_');
   doc.save(`GNIT_Attendance_${sessionBranch}_${safeSubject}_${dateStr}.pdf`);
   showToast('PDF downloaded!');
 }
 
 document.getElementById('complete-pdf-btn').addEventListener('click', exportPDF);
-

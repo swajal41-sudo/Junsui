@@ -16,7 +16,6 @@
 <body>
   
   <div id="app">
-    <!-- Setup Screen -->
     <div id="setup-screen" class="screen active">
       <div class="glass-panel">
         <div class="college-header">
@@ -124,7 +123,6 @@
       </div>
     </div>
 
-    <!-- Call Screen -->
     <div id="call-screen" class="screen">
       <header>
         <h2 id="call-title">Attendance Call</h2>
@@ -144,8 +142,7 @@
 
       <main class="card-area">
         <div id="card-container" class="card-container">
-          <!-- Card gets injected here by JS -->
-        </div>
+          </div>
       </main>
 
       <div class="controls">
@@ -169,7 +166,6 @@
       </div>
     </div>
 
-    <!-- Complete Screen -->
     <div id="complete-screen" class="screen">
       <div class="glass-panel text-center">
         <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -188,6 +184,9 @@
           <button id="complete-report-btn" class="btn outline-btn">
             <span class="material-symbols-outlined">table_view</span> View Report
           </button>
+          <button onclick="sendToSheets()" class="btn outline-btn">
+            <span class="material-symbols-outlined">upload</span> Send to Sheets
+          </button>
           <button id="complete-undo-btn" class="btn outline-btn">
             <span class="material-symbols-outlined">undo</span> Undo Last
           </button>
@@ -199,7 +198,6 @@
     </div>
   </div>
 
-  <!-- Report Screen -->
   <div id="report-screen" class="screen">
     <header>
       <button id="report-back-btn" class="icon-btn">
@@ -212,6 +210,9 @@
         </button>
         <button id="report-export-btn" class="icon-btn" title="Export Excel">
           <span class="material-symbols-outlined">download</span>
+        </button>
+        <button onclick="sendToSheets()" class="icon-btn" title="Send to Sheets">
+          <span class="material-symbols-outlined">upload</span>
         </button>
       </div>
     </header>
@@ -231,7 +232,6 @@
     </div>
   </div>
 
-  <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
   <script src="app.js"></script>

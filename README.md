@@ -18,8 +18,13 @@ This project was developed to eliminate the friction of manual attendance paper-
 
 ### 💾 Engineering Excellence
 - **True Offline Support**: Powered by **Dexie.js (IndexedDB)**. Your data lives in the browser; no internet, no problem.
-- **Persistent Student Registry**: Map roll numbers to names once; they stay saved for every future session.
-- **CSE Ready**: Pre-seeded with the official **CSE 2nd Sem (44 students)** roster for GNIT.
+- **Multi-Department Support**: Pre-seeded with official rosters for:
+  - **CSE 2nd Sem** (44 students)
+  - **Cyber Security** (Complete batch)
+  - **Additional branches** ready for expansion
+
+
+
 
 ### 📄 Official Compliance
 - **One-Click PDF Export**: Generates a PDF formatted exactly like the official GNIT roll-lists, including:
@@ -27,6 +32,11 @@ This project was developed to eliminate the friction of manual attendance paper-
   - Academic Session details.
   - Signature blocks for Class Teacher and HoD.
 - **Excel Export**: Clean `.xlsx` spreadsheets for HOD/Office submissions.
+
+### ☁️ Cloud Integration
+- **Google Sheets Sync**: Seamlessly sync attendance data to Google Sheets via Google Apps Script Web App integration.
+- **Real-time Backup**: Your attendance records are automatically backed up to the cloud while maintaining offline-first functionality.
+- **Collaborative Access**: Share live attendance sheets with HODs and administrative staff.
 
 ## 🛠️ Tech Stack
 - **Languages**: HTML5, CSS3, JavaScript (ES6+).
@@ -42,9 +52,11 @@ Since this is a client-side application, you can deploy it for free on **GitHub 
 4. Your site is live!
 
 ---
+- **Cloud Integration**: Google Apps Script Web App for Sheets API integration.
+
 
 ## 👨‍💻 Developer
-Developed and maintained by **Swajal**  
+Developed and maintained by **Swajal Indorkar**  
 *Dept. of Computer Science & Engineering, GNIT Nagpur*
 
 > "Building tools that solve real-world problems, one line of code at a time."

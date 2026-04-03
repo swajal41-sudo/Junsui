@@ -14,28 +14,46 @@ async function getJunsuiExportData() {
     allRecords = allRecords.filter(r => r.branch === sessionBranch);
   }
 
-  const uniqueDates = [...new Set(allRecords.map(r => r.date))].sort();
+  // Sort by date then timestamp (timeSlot)
+  allRecords.sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return (a.timestamp || "").localeCompare(b.timestamp || "");
+  });
+
+  // Extract unique sessions: combined Date + TimeSlot
+  const uniqueSessions = [];
+  const sessionSet = new Set();
+  allRecords.forEach(r => {
+    const key = `${r.date}@@${r.timeSlot}`;
+    if (!sessionSet.has(key)) {
+      sessionSet.add(key);
+      uniqueSessions.push({ date: r.date, timeSlot: r.timeSlot, key: key });
+    }
+  });
+
   const wsData = [];
 
   wsData.push(["⛩ JUNSUI — ATTENDANCE REGISTER"]);
   wsData.push([`Year: 2025–26 | Sem: II | Branch: ${sessionBranch || "N/A"}`]);
-  const rangeLabel = uniqueDates.length > 0
-    ? `${fmtDate(uniqueDates[0])} – ${fmtDate(uniqueDates[uniqueDates.length - 1])}`
+  const rangeLabel = uniqueSessions.length > 0
+    ? `${fmtDate(uniqueSessions[0].date)} – ${fmtDate(uniqueSessions[uniqueSessions.length - 1].date)}`
     : new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
   wsData.push([`Subject: ${sessionSubject || "N/A"}`, "", "", `Period: ${rangeLabel}`]);
   wsData.push([]);
 
-  const dateColsCount = Math.max(1, uniqueDates.length);
+  const dateColsCount = Math.max(1, uniqueSessions.length);
   const row1 = ["Student Info", ""];
-  row1.push("Lecture Dates");
+  row1.push("Lecture Sessions");
   for (let i = 1; i < dateColsCount; i++) row1.push("");
   row1.push("Summary", "");
   wsData.push(row1);
 
   const row2 = ["R.No.", "Name of Student"];
-  if (uniqueDates.length > 0) {
-    uniqueDates.forEach(d => {
-      row2.push(fmtDate(d));
+  if (uniqueSessions.length > 0) {
+    uniqueSessions.forEach(sess => {
+      // Show DD/MM and Start Time (e.g., 03/04 (10:45 AM))
+      const startTime = sess.timeSlot.split(' - ')[0] || '';
+      row2.push(`${fmtDate(sess.date)} (${startTime})`);
     });
   } else {
     row2.push("-");
@@ -45,8 +63,8 @@ async function getJunsuiExportData() {
 
   for (const s of students) {
     const studentRecords = allRecords.filter(r => r.studentId === s.id);
-    const dateMap = {};
-    studentRecords.forEach(r => { dateMap[r.date] = r.status; });
+    const sessionMap = {};
+    studentRecords.forEach(r => { sessionMap[`${r.date}@@${r.timeSlot}`] = r.status; });
 
     let rnoDisplay = s.rollNo;
     if (s.rollNo.includes('-')) rnoDisplay = parseInt(s.rollNo.split('-').pop()) || s.rollNo;
@@ -54,9 +72,9 @@ async function getJunsuiExportData() {
     const row = [rnoDisplay, s.name];
     let presentCount = 0;
 
-    if (uniqueDates.length > 0) {
-      uniqueDates.forEach(d => {
-        const st = dateMap[d];
+    if (uniqueSessions.length > 0) {
+      uniqueSessions.forEach(sess => {
+        const st = sessionMap[sess.key];
         if (st === 'Present') { row.push('P'); presentCount++; }
         else if (st === 'Absent') { row.push('A'); }
         else if (st === 'Late') { row.push('L'); presentCount++; }
@@ -67,7 +85,7 @@ async function getJunsuiExportData() {
       row.push("-");
     }
 
-    const totalLectures = uniqueDates.length;
+    const totalLectures = uniqueSessions.length;
     row.push(totalLectures > 0 ? `${presentCount} / ${totalLectures}` : '-');
     row.push(totalLectures > 0 ? Math.round((presentCount / totalLectures) * 100) + '%' : '-');
 
@@ -82,15 +100,15 @@ async function getJunsuiExportData() {
     { s: { r: 4, c: 0 }, e: { r: 4, c: 1 } },
   ];
 
-  if (uniqueDates.length > 0) {
-    merges.push({ s: { r: 4, c: 2 }, e: { r: 4, c: 1 + uniqueDates.length } });
-    merges.push({ s: { r: 4, c: 2 + uniqueDates.length }, e: { r: 4, c: 3 + uniqueDates.length } });
+  if (uniqueSessions.length > 0) {
+    merges.push({ s: { r: 4, c: 2 }, e: { r: 4, c: 1 + uniqueSessions.length } });
+    merges.push({ s: { r: 4, c: 2 + uniqueSessions.length }, e: { r: 4, c: 3 + uniqueSessions.length } });
   } else {
     merges.push({ s: { r: 4, c: 2 }, e: { r: 4, c: 2 } });
     merges.push({ s: { r: 4, c: 3 }, e: { r: 4, c: 4 } });
   }
 
-  return { wsData, merges, uniqueDates };
+  return { wsData, merges, uniqueSessions };
 }
 
 async function sendToSheets() {

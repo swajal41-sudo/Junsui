@@ -834,3 +834,34 @@ header {
 .j-dot-a { background: #c0392b; }
 .j-dot-l { background: #d35400; }
 .j-dot-g { background: #eef2ff; border: 1px solid #7ec8e3; }
+
+/* ── NEXT LECTURE MODAL ─────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 20px;
+}
+
+.modal-box {
+  background: #1a1a3e;
+  border: 1px solid var(--surface-border);
+  border-radius: 24px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  animation: modalIn 0.25s ease-out;
+}
+
+@keyframes modalIn {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

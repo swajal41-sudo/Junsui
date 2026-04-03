@@ -157,8 +157,6 @@
           </button>
         </div>
         <div class="sub-controls">
-          <button id="late-btn" class="btn small-btn late-btn">Late</button>
-          <button id="leave-btn" class="btn small-btn leave-btn">Leave</button>
           <button id="undo-btn" class="btn small-btn undo-btn">
             <span class="material-symbols-outlined">undo</span> Undo
           </button>
@@ -172,7 +170,12 @@
         <h1>All Done!</h1>
         <p class="subtitle">All students marked for this session.</p>
         
-        <button id="complete-export-btn" class="btn primary-btn mt-4">
+        <button id="next-lecture-btn" class="btn primary-btn mt-4">
+          <span class="material-symbols-outlined">skip_next</span>
+          Next Lecture
+        </button>
+
+        <button id="complete-export-btn" class="btn primary-btn" style="margin-top:10px; background: var(--accent-color)">
           <span class="material-symbols-outlined">download</span>
           Export Excel
         </button>
@@ -196,47 +199,88 @@
         </div>
       </div>
     </div>
+
+    <!-- Next Lecture Modal -->
+    <div id="next-lecture-modal" class="modal-overlay" style="display:none;">
+      <div class="modal-box">
+        <h2 style="margin-bottom:6px">Next Lecture</h2>
+        <p class="subtitle" style="margin-bottom:20px">Same branch &amp; students — just update subject &amp; time</p>
+
+        <div class="input-group">
+          <label for="nl-subject">Subject</label>
+          <select id="nl-subject" class="select-input"></select>
+        </div>
+        <div id="nl-custom-group" class="input-group" style="display:none">
+          <label for="nl-custom">Type Subject Name</label>
+          <input type="text" id="nl-custom" placeholder="e.g. Advanced AI">
+        </div>
+
+        <div class="time-range-group" style="margin-bottom:16px">
+          <div class="time-box-group">
+            <label>Start Time</label>
+            <div class="time-box">
+              <input type="number" id="nl-start-h" min="0" max="23" class="time-num">
+              <span class="time-colon">:</span>
+              <input type="number" id="nl-start-m" min="0" max="59" class="time-num">
+            </div>
+          </div>
+          <span class="time-separator">to</span>
+          <div class="time-box-group">
+            <label>End Time</label>
+            <div class="time-box">
+              <input type="number" id="nl-end-h" min="0" max="23" class="time-num">
+              <span class="time-colon">:</span>
+              <input type="number" id="nl-end-m" min="0" max="59" class="time-num">
+            </div>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="nl-duration">Duration</label>
+          <select id="nl-duration" class="select-input">
+            <option value="60">60 min (1 class)</option>
+            <option value="120">120 min (Lab / 2 classes)</option>
+          </select>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:8px">
+          <button id="nl-cancel-btn" class="btn outline-btn" style="flex:1">Cancel</button>
+          <button id="nl-start-btn" class="btn primary-btn" style="flex:2">
+            <span class="material-symbols-outlined">play_arrow</span> Start
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div id="report-screen" class="screen junsui-mode">
-    <div class="junsui-page">
-      <div class="junsui-top-actions">
-        <button id="report-back-btn" class="icon-btn" style="color: #1a1a2e"><span class="material-symbols-outlined">arrow_back</span></button>
-        <div style="flex:1"></div>
-        <button id="report-pdf-btn" class="icon-btn" title="Export PDF" style="color: #1a1a2e"><span class="material-symbols-outlined">picture_as_pdf</span></button>
-        <button id="report-export-btn" class="icon-btn" title="Export Excel" style="color: #1a1a2e"><span class="material-symbols-outlined">download</span></button>
-        <button onclick="sendToSheets()" class="icon-btn" title="Send to Sheets" style="color: #1a1a2e"><span class="material-symbols-outlined">upload</span></button>
+  <div id="report-screen" class="screen">
+    <header>
+      <button id="report-back-btn" class="icon-btn">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <h2>Session Report</h2>
+      <div class="actions">
+        <button id="report-pdf-btn" class="icon-btn" title="Export PDF">
+          <span class="material-symbols-outlined">picture_as_pdf</span>
+        </button>
+        <button id="report-export-btn" class="icon-btn" title="Export Excel">
+          <span class="material-symbols-outlined">download</span>
+        </button>
       </div>
-
-      <div class="junsui-header">
-        <h1>⛩ JUNSUI — ATTENDANCE REGISTER</h1>
-        <div class="junsui-meta" id="junsui-reg-branch">Year: 2025–26 &nbsp;|&nbsp; Sem: II &nbsp;|&nbsp; Branch: CSE</div>
-      </div>
-
-      <div class="junsui-subheader">
-        <div>Subject: <span id="junsui-reg-subject">Discrete Mathematics</span></div>
-        <div>Time: <span id="junsui-reg-timeSlot">-</span></div>
-        <div>Total Date Records: <span id="junsui-reg-dates">0</span></div>
-      </div>
-
-      <div class="junsui-table-wrapper">
-        <table class="junsui-table">
-          <thead id="junsui-thead">
-            <!-- Will be generated by app.js -->
-          </thead>
-          <tbody id="junsui-tableBody">
-            <!-- Will be generated by app.js -->
-          </tbody>
-        </table>
-      </div>
-
-      <div class="junsui-legend">
-        <div class="junsui-legend-item"><div class="j-dot j-dot-p"></div> P — Present</div>
-        <div class="junsui-legend-item"><div class="j-dot j-dot-a"></div> A — Absent</div>
-        <div class="junsui-legend-item"><div class="j-dot j-dot-l"></div> L — Late</div>
-        <div class="junsui-legend-item"><div class="j-dot j-dot-g"></div> Total / % columns</div>
-        <div class="junsui-legend-item" style="margin-left:auto; color:#c0392b">⚠ Below 75% highlighted in red</div>
-      </div>
+    </header>
+    <p class="report-meta" id="report-meta"></p>
+    <div class="report-table-wrapper">
+      <table class="report-table" id="report-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Roll No</th>
+            <th>Name</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="report-body"></tbody>
+      </table>
     </div>
   </div>
 

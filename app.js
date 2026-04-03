@@ -3,6 +3,8 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhhxcvCB4-M_e7
 
 async function getJunsuiExportData() {
   const students = studentsList;
+  // Helper: "YYYY-MM-DD" → "DD/MM"
+  const fmtDate = d => { const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}` : d; };
   let allRecords = await db.attendance.toArray();
 
   if (sessionSubject && sessionSubject !== 'Unknown') {
@@ -17,7 +19,10 @@ async function getJunsuiExportData() {
 
   wsData.push(["⛩ JUNSUI — ATTENDANCE REGISTER"]);
   wsData.push([`Year: 2025–26 | Sem: II | Branch: ${sessionBranch || "N/A"}`]);
-  wsData.push([`Subject: ${sessionSubject || "N/A"}`, "", "", `Month: ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}`]);
+  const rangeLabel = uniqueDates.length > 0
+    ? `${fmtDate(uniqueDates[0])} – ${fmtDate(uniqueDates[uniqueDates.length - 1])}`
+    : new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  wsData.push([`Subject: ${sessionSubject || "N/A"}`, "", "", `Period: ${rangeLabel}`]);
   wsData.push([]);
 
   const dateColsCount = Math.max(1, uniqueDates.length);
@@ -30,8 +35,7 @@ async function getJunsuiExportData() {
   const row2 = ["R.No.", "Name of Student"];
   if (uniqueDates.length > 0) {
     uniqueDates.forEach(d => {
-      const parts = d.split('-');
-      row2.push(parts.length === 3 ? parseInt(parts[2]).toString() : d);
+      row2.push(fmtDate(d));
     });
   } else {
     row2.push("-");
@@ -96,31 +100,37 @@ async function sendToSheets() {
     return;
   }
 
-  try {
-    showToast("Sending Junsui data to Google Sheets...");
-    const payload = JSON.stringify({
-      sheetName: sessionSubject || "Attendance",
-      wsData: data.wsData,
-      merges: data.merges
-    });
+  showToast("Sending data to Google Sheets...");
 
-    // mode: 'no-cors' prevents the browser from doing a preflight OPTIONS check 
-    // and blocks following any redirects (preventing "vo website pe na jaye").
-    await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {
-        "Content-Type": "text/plain",
-      },
-      body: payload
-    });
+  const payload = JSON.stringify({
+    sheetName: sessionSubject || "Attendance",
+    wsData: data.wsData,
+    merges: data.merges
+  });
 
-    // mode: no-cors gives an opaque response, so we optimistically show success
-    showToast("✅ Register synced via Apps Script!");
-  } catch (err) {
-    showToast("❌ Failed to send!");
-    console.error(err);
-  }
+  // XHR follows redirects (unlike fetch no-cors which breaks after 1st call)
+  // ?t= cache-busts so browser never reuses a stale redirect token
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", APPS_SCRIPT_URL + "?t=" + Date.now(), true);
+    xhr.setRequestHeader("Content-Type", "text/plain");
+    xhr.timeout = 15000;
+
+    xhr.onload = () => {
+      showToast("\u2705 Synced to Sheets!");
+      resolve();
+    };
+    xhr.onerror = () => {
+      // CORS error is expected — data still reaches Apps Script
+      showToast("\u2705 Sent! Check your Sheet.");
+      resolve();
+    };
+    xhr.ontimeout = () => {
+      showToast("\u26a0\ufe0f Timeout — try again");
+      resolve();
+    };
+    xhr.send(payload);
+  });
 }
 
 // Initialize Dexie JS Database
@@ -160,9 +170,7 @@ const toast = document.getElementById('toast');
 
 // Actions
 const btnPresent = document.getElementById('present-btn');
-const btnAbsent = document.getElementById('absent-btn');
-const btnLate = document.getElementById('late-btn');
-const btnLeave = document.getElementById('leave-btn');
+const btnAbsent  = document.getElementById('absent-btn');
 const btnUndoList = document.querySelectorAll('.undo-btn, #complete-undo-btn');
 
 const btnExportList = document.querySelectorAll('#export-btn, #complete-export-btn');
@@ -208,7 +216,9 @@ async function initializeStudents(count) {
     const shortRoll = String(i);
     const fullRoll = prefix ? `${prefix}-${String(i).padStart(3, '0')}` : String(i);
 
-    let displayName = nameMap[fullRoll] || nameMap[shortRoll];
+    // Only use registry name if it looks like a valid full name (has a space, min 5 chars)
+    const rawName = nameMap[fullRoll] || nameMap[shortRoll];
+    let displayName = (rawName && rawName.includes(' ') && rawName.trim().length >= 5) ? rawName : null;
 
     if (!displayName) {
       if (currentBranch === 'CSE' && CSE_STUDENTS[i - 1]) displayName = CSE_STUDENTS[i - 1];
@@ -441,8 +451,6 @@ async function recordAttendance(status, isPresent) {
 
 btnPresent.addEventListener('click', () => recordAttendance('Present', true));
 btnAbsent.addEventListener('click', () => recordAttendance('Absent', false));
-btnLate.addEventListener('click', () => recordAttendance('Late', false));
-btnLeave.addEventListener('click', () => recordAttendance('Leave', false));
 
 async function undoLast() {
   const lastRecord = await db.queue.orderBy('id').last();
@@ -515,101 +523,189 @@ btnNewSession.addEventListener('click', () => {
   switchScreen('setup');
 });
 
+// ── NEXT LECTURE MODAL ────────────────────────────────────
+const nextLectureModal = document.getElementById('next-lecture-modal');
+const nlSubjectSelect  = document.getElementById('nl-subject');
+const nlCustomGroup    = document.getElementById('nl-custom-group');
+const nlCustomInput    = document.getElementById('nl-custom');
+const nlDuration       = document.getElementById('nl-duration');
+
+// Clone subject options from main select into modal select
+(function populateNlSubjects() {
+  const mainOpts = document.getElementById('subject').querySelectorAll('option');
+  mainOpts.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.value;
+    opt.textContent = o.textContent;
+    nlSubjectSelect.appendChild(opt);
+  });
+})();
+
+nlSubjectSelect.addEventListener('change', () => {
+  nlCustomGroup.style.display = nlSubjectSelect.value === 'Other' ? 'flex' : 'none';
+});
+
+function nlRecalcEnd() {
+  const dur = parseInt(nlDuration.value) || 60;
+  const sh  = parseInt(document.getElementById('nl-start-h').value);
+  const sm  = parseInt(document.getElementById('nl-start-m').value);
+  if (isNaN(sh) || isNaN(sm)) return;
+  const end = sh * 60 + sm + dur;
+  document.getElementById('nl-end-h').value = Math.floor(end / 60) % 24;
+  document.getElementById('nl-end-m').value = end % 60;
+}
+
+document.getElementById('nl-duration').addEventListener('change', nlRecalcEnd);
+document.getElementById('nl-start-h').addEventListener('input', nlRecalcEnd);
+document.getElementById('nl-start-m').addEventListener('input', nlRecalcEnd);
+
+document.getElementById('next-lecture-btn').addEventListener('click', () => {
+  // Pre-fill subject to current session subject
+  const opts = Array.from(nlSubjectSelect.options);
+  const match = opts.find(o => o.value === sessionSubject);
+  nlSubjectSelect.value = match ? sessionSubject : opts[0].value;
+  nlCustomGroup.style.display = 'none';
+
+  // Auto-advance time: current end time becomes next start time
+  const fmt24 = (slot) => {
+    // slot like "10:45 AM - 11:45 AM", parse end part
+    const end = slot.split(' - ')[1] || '';
+    const [hm, ampm] = end.split(' ');
+    if (!hm || !ampm) return null;
+    let [h, m] = hm.split(':').map(Number);
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return { h, m };
+  };
+  const nextStart = fmt24(sessionTimeSlot);
+  if (nextStart) {
+    document.getElementById('nl-start-h').value = nextStart.h;
+    document.getElementById('nl-start-m').value = nextStart.m;
+    nlDuration.value = document.getElementById('duration').value;
+    nlRecalcEnd();
+  }
+
+  nextLectureModal.style.display = 'flex';
+});
+
+document.getElementById('nl-cancel-btn').addEventListener('click', () => {
+  nextLectureModal.style.display = 'none';
+});
+
+document.getElementById('nl-start-btn').addEventListener('click', async () => {
+  let newSubject = nlSubjectSelect.value;
+  if (newSubject === 'Other') newSubject = nlCustomInput.value || 'Custom Subject';
+
+  const sh = parseInt(document.getElementById('nl-start-h').value) || 0;
+  const sm = parseInt(document.getElementById('nl-start-m').value) || 0;
+  const eh = parseInt(document.getElementById('nl-end-h').value) || 0;
+  const em = parseInt(document.getElementById('nl-end-m').value) || 0;
+  const fmt = (h, m) => `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+
+  sessionSubject  = newSubject;
+  sessionTimeSlot = `${fmt(sh, sm)} - ${fmt(eh, em)}`;
+  sessionDate     = new Date().toISOString().split('T')[0];
+  currentIndex    = 0;
+
+  // Reload students from DB (same branch, same list)
+  studentsList = await db.students.toArray();
+  // Reset their session stats for fresh card display
+  await db.students.toCollection().modify({ totalClasses: 0, attendedClasses: 0 });
+  studentsList = await db.students.toArray();
+
+  nextLectureModal.style.display = 'none';
+  renderCard();
+  switchScreen('call');
+  showToast(`▶ ${newSubject} — ${fmt(sh, sm)}`);
+});
+
 // ── REPORT SCREEN ────────────────────────────────────────────
-const statusCycle = ['Present', 'Absent', 'Late', 'Leave'];
+const statusCycle = ['Present', 'Absent'];
 const statusShort = { 'Present': 'P', 'Absent': 'A', 'Late': 'L', 'Leave': 'Lv', null: 'N/A' };
 const statusClass = { 'Present': 'status-P', 'Absent': 'status-A', 'Late': 'status-L', 'Leave': 'status-Lv', null: 'status-NA' };
 
 async function renderReport() {
+  const dateStr = sessionDate;
   const students = await db.students.toArray();
-  let allRecords = await db.attendance.toArray();
-  if (sessionSubject && sessionSubject !== 'Unknown') {
-    allRecords = allRecords.filter(r => r.subject === sessionSubject);
-  }
-  if (sessionBranch && sessionBranch !== 'Unknown') {
-    allRecords = allRecords.filter(r => r.branch === sessionBranch);
-  }
+  let todayRecords = await db.attendance.toArray();
+  todayRecords = todayRecords.filter(r =>
+    r.date === dateStr &&
+    r.subject === sessionSubject &&
+    r.branch === sessionBranch &&
+    r.timeSlot === sessionTimeSlot
+  );
 
-  const uniqueDates = [...new Set(allRecords.map(r => r.date))].sort();
+  const meta = document.getElementById('report-meta');
+  meta.textContent = `${sessionBranch} · ${sessionSubject} · ${sessionTimeSlot} · ${dateStr}`;
 
-  document.getElementById('junsui-reg-branch').innerHTML = `Year: 2025–26 &nbsp;|&nbsp; Sem: II &nbsp;|&nbsp; Branch: ${sessionBranch || 'N/A'}`;
-  document.getElementById('junsui-reg-subject').textContent = sessionSubject || '-';
-  document.getElementById('junsui-reg-timeSlot').textContent = sessionTimeSlot || '-';
-  document.getElementById('junsui-reg-dates').textContent = uniqueDates.length;
-
-  const thead = document.getElementById('junsui-thead');
-  const tbody = document.getElementById('junsui-tableBody');
-  thead.innerHTML = '';
+  const tbody = document.getElementById('report-body');
   tbody.innerHTML = '';
 
-  const dateColsCount = Math.max(1, uniqueDates.length);
+  students.forEach((s, idx) => {
+    const rec = todayRecords.find(r => r.studentId === s.id) || null;
+    const status = rec ? rec.status : null;
+    const badge = statusShort[status];
+    const cls = statusClass[status];
 
-  const tr1 = document.createElement('tr');
-  tr1.innerHTML = `
-    <th colspan="2" class="col-name">Student Info</th>
-    <th colspan="${dateColsCount}">Lecture Dates</th>
-    <th colspan="2">Summary</th>
-  `;
-  thead.appendChild(tr1);
-
-  const tr2 = document.createElement('tr');
-  let tr2Html = `<th class="col-rno">R.No.</th><th class="col-name">Name of Student</th>`;
-  if (uniqueDates.length > 0) {
-    uniqueDates.forEach(d => {
-      const parts = d.split('-');
-      const day = parts.length === 3 ? parseInt(parts[2]).toString() : d;
-      tr2Html += `<th>${day}</th>`;
-    });
-  } else {
-    tr2Html += `<th>-</th>`;
-  }
-  tr2Html += `<th>Total<br>Present</th><th>%</th>`;
-  tr2.innerHTML = tr2Html;
-  thead.appendChild(tr2);
-
-  students.forEach(s => {
-    const studentRecords = allRecords.filter(r => r.studentId === s.id);
-    const dateMap = {};
-    studentRecords.forEach(r => { dateMap[r.date] = r.status || r.statusShort; });
-
-    let presentCount = 0;
     const tr = document.createElement('tr');
-
-    let rnoDisplay = s.rollNo;
-    if (s.rollNo && s.rollNo.includes('-')) {
-      const parsed = parseInt(s.rollNo.split('-').pop());
-      if (!isNaN(parsed)) rnoDisplay = parsed;
-    }
-
-    let cells = `<td class="rno">${rnoDisplay}</td><td class="name">${s.name || '—'}</td>`;
-
-    if (uniqueDates.length > 0) {
-      uniqueDates.forEach(d => {
-        const st = dateMap[d];
-        if (st === 'Present') { cells += `<td class="present">P</td>`; presentCount++; }
-        else if (st === 'Absent') { cells += `<td class="absent">A</td>`; }
-        else if (st === 'Late') { cells += `<td class="late">L</td>`; presentCount++; }
-        else if (st === 'Leave') { cells += `<td style="color:#3b82f6;font-weight:600">Lv</td>`; }
-        else { cells += `<td style="color:#ccc">—</td>`; }
-      });
-    } else {
-      cells += `<td style="color:#ccc">—</td>`;
-    }
-
-    const totalLectures = uniqueDates.length;
-    const pct = totalLectures > 0 ? Math.round((presentCount / totalLectures) * 100) : 0;
-
-    cells += `<td class="total-col">${totalLectures > 0 ? presentCount + ' / ' + totalLectures : '—'}</td>`;
-
-    if (totalLectures > 0) {
-      let pClass = pct >= 75 ? 'percent-good' : pct >= 60 ? 'percent-warn' : 'percent-bad';
-      cells += `<td class="percent-col ${pClass}">${pct}%</td>`;
-    } else {
-      cells += `<td class="percent-col" style="color:#ccc">—</td>`;
-    }
-
-    tr.innerHTML = cells;
+    tr.innerHTML = `
+      <td>${idx + 1}</td>
+      <td>${s.rollNo}</td>
+      <td>${s.name}</td>
+      <td>
+        <span class="status-badge ${cls}" data-student-id="${s.id}" data-rec-id="${rec ? rec.id : ''}" data-status="${status || ''}">
+          ${badge}
+        </span>
+      </td>
+    `;
     tbody.appendChild(tr);
+  });
+
+  // Inline edit: tap badge to cycle status
+  tbody.querySelectorAll('.status-badge').forEach(badge => {
+    badge.addEventListener('click', async () => {
+      const studentId = parseInt(badge.dataset.studentId);
+      const recId = parseInt(badge.dataset.recId) || null;
+      const currentStatus = badge.dataset.status || null;
+
+      const nextIdx = currentStatus ? (statusCycle.indexOf(currentStatus) + 1) % statusCycle.length : 0;
+      const newStatus = statusCycle[nextIdx];
+      const dateStr = sessionDate;
+      const timestamp = new Date().toISOString();
+
+      if (recId) {
+        // Update existing record
+        await db.attendance.update(recId, { status: newStatus });
+        const student = await db.students.get(studentId);
+        const wasPresent = currentStatus === 'Present';
+        const isNowPresent = newStatus === 'Present';
+        let attendDelta = 0;
+        if (wasPresent && !isNowPresent) attendDelta = -1;
+        if (!wasPresent && isNowPresent) attendDelta = 1;
+        await db.students.update(studentId, {
+          attendedClasses: Math.max(0, student.attendedClasses + attendDelta)
+        });
+      } else {
+        // First time marking this student
+        const newId = await db.attendance.add({
+          studentId, date: dateStr, status: newStatus,
+          timestamp, subject: sessionSubject, timeSlot: sessionTimeSlot, branch: sessionBranch
+        });
+        badge.dataset.recId = newId;
+        const student = await db.students.get(studentId);
+        await db.students.update(studentId, {
+          totalClasses: student.totalClasses + 1,
+          attendedClasses: student.attendedClasses + (newStatus === 'Present' ? 1 : 0)
+        });
+      }
+
+      // Update badge UI
+      badge.dataset.status = newStatus;
+      badge.textContent = statusShort[newStatus];
+      badge.className = `status-badge ${statusClass[newStatus]}`;
+      studentsList = await db.students.toArray();
+      triggerHaptic();
+    });
   });
 }
 

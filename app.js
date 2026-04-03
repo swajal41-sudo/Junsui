@@ -126,40 +126,22 @@ async function sendToSheets() {
     merges: data.merges
   });
 
-  // Using hidden iframe/form POST to bypass all CORS and 302 Redirect issues entirely.
   return new Promise((resolve) => {
-    let iframe = document.getElementById("sheets-iframe");
-    if (!iframe) {
-      iframe = document.createElement("iframe");
-      iframe.id = "sheets-iframe";
-      iframe.name = "sheets-iframe";
-      iframe.style.display = "none";
-      document.body.appendChild(iframe);
-    }
-
-    let form = document.getElementById("sheets-form");
-    if (!form) {
-      form = document.createElement("form");
-      form.id = "sheets-form";
-      form.method = "POST";
-      form.target = "sheets-iframe";
-      
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = "data"; // Apps script reads e.parameter.data
-      form.appendChild(input);
-      document.body.appendChild(form);
-    }
-
-    form.action = APPS_SCRIPT_URL + "?t=" + Date.now();
-    form.querySelector("input").value = payload;
-    form.submit();
-
-    // Give it 2 seconds to send then show success.
-    setTimeout(() => {
+    fetch(APPS_SCRIPT_URL + "?t=" + Date.now(), {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain",
+      },
+      body: payload
+    }).then(() => {
       showToast("\u2705 Sent! Check your Sheet.");
       resolve();
-    }, 2000);
+    }).catch((err) => {
+      console.error(err);
+      showToast("\u26a0\ufe0f Send failed! Try again.");
+      resolve();
+    });
   });
 }
 

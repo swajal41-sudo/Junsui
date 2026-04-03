@@ -582,8 +582,16 @@ document.getElementById('next-lecture-btn').addEventListener('click', () => {
   // Pre-fill subject to current session subject
   const opts = Array.from(nlSubjectSelect.options);
   const match = opts.find(o => o.value === sessionSubject);
-  nlSubjectSelect.value = match ? sessionSubject : opts[0].value;
-  nlCustomGroup.style.display = 'none';
+  
+  if (match) {
+    nlSubjectSelect.value = sessionSubject;
+    nlCustomGroup.style.display = 'none';
+  } else {
+    // If it was a custom subject, select "Other" and pre-fill the text box
+    nlSubjectSelect.value = 'Other';
+    nlCustomGroup.style.display = 'flex';
+    nlCustomInput.value = sessionSubject;
+  }
 
   // Auto-advance time: current end time becomes next start time
   const fmt24 = (slot) => {

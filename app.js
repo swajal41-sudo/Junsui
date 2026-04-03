@@ -108,28 +108,40 @@ async function sendToSheets() {
     merges: data.merges
   });
 
-  // XHR follows redirects (unlike fetch no-cors which breaks after 1st call)
-  // ?t= cache-busts so browser never reuses a stale redirect token
+  // Using hidden iframe/form POST to bypass all CORS and 302 Redirect issues entirely.
   return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", APPS_SCRIPT_URL + "?t=" + Date.now(), true);
-    xhr.setRequestHeader("Content-Type", "text/plain");
-    xhr.timeout = 15000;
+    let iframe = document.getElementById("sheets-iframe");
+    if (!iframe) {
+      iframe = document.createElement("iframe");
+      iframe.id = "sheets-iframe";
+      iframe.name = "sheets-iframe";
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+    }
 
-    xhr.onload = () => {
-      showToast("\u2705 Synced to Sheets!");
-      resolve();
-    };
-    xhr.onerror = () => {
-      // CORS error is expected — data still reaches Apps Script
+    let form = document.getElementById("sheets-form");
+    if (!form) {
+      form = document.createElement("form");
+      form.id = "sheets-form";
+      form.method = "POST";
+      form.target = "sheets-iframe";
+      
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "data"; // Apps script reads e.parameter.data
+      form.appendChild(input);
+      document.body.appendChild(form);
+    }
+
+    form.action = APPS_SCRIPT_URL + "?t=" + Date.now();
+    form.querySelector("input").value = payload;
+    form.submit();
+
+    // Give it 2 seconds to send then show success.
+    setTimeout(() => {
       showToast("\u2705 Sent! Check your Sheet.");
       resolve();
-    };
-    xhr.ontimeout = () => {
-      showToast("\u26a0\ufe0f Timeout — try again");
-      resolve();
-    };
-    xhr.send(payload);
+    }, 2000);
   });
 }
 

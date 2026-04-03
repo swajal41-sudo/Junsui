@@ -369,6 +369,11 @@ function recalcEndTime() {
   const slotMins = Math.floor(totalMins / 45) * 45;
   document.getElementById('start-h').value = Math.floor(slotMins / 60);
   document.getElementById('start-m').value = slotMins % 60;
+  
+  const todayDate = now.toISOString().split('T')[0];
+  const sdInput = document.getElementById('session-date');
+  if (sdInput) sdInput.value = todayDate;
+  
   recalcEndTime();
 })();
 
@@ -389,7 +394,9 @@ setupBtn.addEventListener('click', async () => {
   const em = parseInt(document.getElementById('end-m').value) || 0;
   const fmt = (h, m) => `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
   sessionTimeSlot = `${fmt(sh, sm)} - ${fmt(eh, em)}`;
-  sessionDate = new Date().toISOString().split('T')[0];
+  
+  const selectedDate = document.getElementById('session-date').value;
+  sessionDate = selectedDate ? selectedDate : new Date().toISOString().split('T')[0];
 
   const numStudents = Math.max(1, parseInt(document.getElementById('num-students').value) || 60);
 
@@ -612,6 +619,10 @@ document.getElementById('next-lecture-btn').addEventListener('click', () => {
     document.getElementById('nl-start-h').value = nextStart.h;
     document.getElementById('nl-start-m').value = nextStart.m;
     nlDuration.value = document.getElementById('duration').value;
+    
+    const nlDateInput = document.getElementById('nl-session-date');
+    if (nlDateInput) nlDateInput.value = sessionDate;
+
     nlRecalcEnd();
   }
 
@@ -634,7 +645,10 @@ document.getElementById('nl-start-btn').addEventListener('click', async () => {
 
   sessionSubject  = newSubject;
   sessionTimeSlot = `${fmt(sh, sm)} - ${fmt(eh, em)}`;
-  sessionDate     = new Date().toISOString().split('T')[0];
+  
+  const selectedNlDate = document.getElementById('nl-session-date').value;
+  sessionDate     = selectedNlDate ? selectedNlDate : new Date().toISOString().split('T')[0];
+  
   currentIndex    = 0;
 
   // Reload students from DB (same branch, same list)

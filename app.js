@@ -236,6 +236,7 @@ async function initializeStudents(count) {
       if (currentBranch === 'CSE' && CSE_STUDENTS[i - 1]) displayName = CSE_STUDENTS[i - 1];
       else if (currentBranch === 'ETC' && ETC_STUDENTS[i - 1]) displayName = ETC_STUDENTS[i - 1];
       else if (currentBranch === 'CSE-CS' && CSECS_STUDENTS[i - 1]) displayName = CSECS_STUDENTS[i - 1];
+      else if (currentBranch === 'CSE-DS' && CSEDS_STUDENTS[i - 1]) displayName = CSEDS_STUDENTS[i - 1];
     }
 
     displayName = displayName || `Student ${i}`;
@@ -260,7 +261,7 @@ const numStudentsInput = document.getElementById('num-students');
 // Default student count per branch
 const branchStudentCount = {
   'CSE': 44,
-  'CSE-DS': 60,
+  'CSE-DS': 54,
   'CSE-CS': 48,
   'AIML': 60,
   'IT': 60,
@@ -314,6 +315,23 @@ const CSECS_STUDENTS = [
   "Shreyas Sunil Puri", "Siddhi Ravindra Meshram", "Srushti Pradip Dange", "Subodh Davanand Bhagat",
   "Suraj Rajesh Misewar", "Swayam Vinod Ghadse", "Tanushree Nishant Bhasarkar", "Tanushree Sachin Borkar",
   "Tejaswini Sunil Dhote", "Vansh Prabhakar Khapekar", "Yamini Ravishankar Rane", "Yash Purushottam Nagpure"
+];
+
+const CSEDS_STUDENTS = [
+  "Achal Mukesh Kalsarpe", "Aditya Dhananjay More", "Aniket Ravindra Bagde", "Apurva Rakesh Gajbhiye",
+  "Arya Yogesh Khalsinge", "Ashish Pyarelal Patel", "Atharv Raju Misal", "Chaitali Pradip Gokhare",
+  "Chinmayee Naresh Tijare", "Gayatri Vijay Tiple", "Harshit Santosh Donode", "Irfan Altaf Husain Sheikh",
+  "Janhavi Vinod Chandankhede", "Kalash Manoj Gaikwad", "Ketki Vivek Bagaitkar", "Khushal Lileshwar Chinchole",
+  "Khushi Rajkumar Bhujadale", "Kruti Ashok Hatkar", "Krutika Vikas Chaware", "Maheshwari Gangadhar Bhoyar",
+  "Mohini Subhash Tupat", "Nandini Janardhan Arudkar", "Nandini Prashant Bhoyar", "Nayan Baba Chimote",
+  "Nutan Rashtrapal Dambhole", "Ojas Madhukar Bhaisare", "Om Rajesh Raut", "Om Vijay More",
+  "Pankaj Subhash Khandelkar", "Prathamesh Udaybhan Bawane", "Prathmesh Arun Gawai", "Pratiksha Dnyaneshwar Bobade",
+  "Pratiksha Nilesh Raydas", "Rajat Ramprakash Chaturvedi", "Rohit Lalit Janbandhu", "Rohit Sanjay Lawhale",
+  "Roshan Shaligram Tade", "Sanchita Suresh Sonone", "Saniya Sanjay Sahare", "Sanuli Pradeep Motghare",
+  "Shital Anil There", "Shravani Sunil Dhore", "Shubham Digambar Bansode", "Sushant Vijay Bansinge",
+  "Swati Ganesh Babhulkar", "Sweety Manohar Dhobale", "Taniya Vishwanath Parate", "Tanushri Sanjayrao Ughade",
+  "Upeksha Gautam Dhone", "Vedanti Vijay Babde", "Yuvraj Rajendra Mohdikar", "Kshitija Sanjay Wahane",
+  "Ansari Nargis Parveen Kousar", "Prashik Mohanlal Meshram"
 ];
 
 // Set initial value on page load
@@ -797,7 +815,12 @@ async function exportPDF() {
   doc.line(10, 32, pageW - 10, 32);
 
   doc.setFontSize(10).setFont('helvetica', 'bold');
-  const sessionTitle = `ROLL LIST - IInd SEM ${sessionBranch === 'CSE' ? 'COMPUTER SCIENCE ENGINEERING' : sessionBranch}`;
+  let branchFullName = sessionBranch;
+  if (sessionBranch === 'CSE') branchFullName = 'COMPUTER SCIENCE ENGINEERING';
+  else if (sessionBranch === 'CSE-DS') branchFullName = 'COMPUTER SCIENCE ENGINEERING - DATA SCIENCE';
+  else if (sessionBranch === 'CSE-CS') branchFullName = 'COMPUTER SCIENCE ENGINEERING - CYBER SECURITY';
+  
+  const sessionTitle = `ROLL LIST - IInd SEM ${branchFullName}`;
   doc.text(sessionTitle, pageW / 2, 40, { align: 'center' });
 
   doc.setFontSize(9).setFont('helvetica', 'bold');
@@ -822,6 +845,9 @@ async function exportPDF() {
     } else if (sessionBranch === 'CSE-CS') {
       const num = s.rollNo.split('-').pop();
       rollDisplay = `25CSECS${num.slice(-2)}`;
+    } else if (sessionBranch === 'CSE-DS') {
+      const num = s.rollNo.split('-').pop();
+      rollDisplay = `25CSEDS${num.slice(-2)}`;
     }
 
     const shortStatus = { 'Present': 'P', 'Absent': 'A', 'Late': 'L', 'Leave': 'Lv', 'N/A': '-' }[status] || '-';
